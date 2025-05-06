@@ -82,3 +82,7 @@ $data = $con->opencon();
 <?php echo $sweetAlertConfig; ?>
 </body>
 </html>
+
+
+git config --global user.email "perezkw@students.nu-lipa.edu.ph"
+  git config --global user.name "KevinPerez1234"

@@ -11,13 +11,14 @@ if (isset($_POST['register'])) {
     // Getting the account information
     $username = $_POST['username'];
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);  // Hash the password
- 
+    $email = $_POST['email']; 
+
     // Getting the personal information
     $firstname = $_POST['first_name'];
     $lastname = $_POST['last_name'];
  
     // Save the user data in the Users table
-    $userID = $con->signupUser($firstname, $lastname, $username, $password);
+    $userID = $con->signupUser($firstname, $lastname, $username, $email, $password);
  
     if ($userID) {
         // Registration successful, set SweetAlert script
@@ -66,6 +67,11 @@ if (isset($_POST['register'])) {
         <label for="username" class="form-label">Username</label>
         <input type="text" name="username" id="username" class="form-control" placeholder="Enter your username" required>
         <div class="invalid-feedback">Username is required.</div>
+      </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="text" name="email" id="email" class="form-control" placeholder="Enter your email" required>
+        <div class="invalid-feedback">Email is required.</div>
       </div>
       <div class="mb-3">
         <label for="password" class="form-label">Password</label>
@@ -143,17 +149,67 @@ if (isset($_POST['register'])) {
     });
   };
  
+
+  // Real-time email validation using AJAX
+  const checkEmailAvailability = (emailField) => {
+    emailField.addEventListener('input', () => {
+      const email = emailField.value.trim();
+ 
+      if (email === '') {
+        emailField.classList.remove('is-valid');
+        emailField.classList.add('is-invalid');
+        emailField.nextElementSibling.textContent = 'Email is required.';
+        registerButton.disabled = true; // Disable the button
+      return;
+      }
+ 
+      // Send AJAX request to check email availability
+      fetch('ajax/check_email.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `email=${encodeURIComponent(email)}`,
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.exists) {
+            emailField.classList.remove('is-valid');
+            emailField.classList.add('is-invalid');
+            emailField.nextElementSibling.textContent = 'Email is already taken.';
+            registerButton.disabled = true; // Disable the button
+          } else {
+            emailField.classList.remove('is-invalid');
+            emailField.classList.add('is-valid');
+            emailField.nextElementSibling.textContent = '';
+            registerButton.disabled = false; // Enable the button
+          }
+        })
+        .catch((error) => {
+          console.error('Error:', error);
+          registerButton.disabled = true; // Disable the button in case of an error
+        });
+    });
+  };
+
   // Get form fields
   const firstName = document.getElementById('first_name');
   const lastName = document.getElementById('last_name');
   const username = document.getElementById('username');
+  const email = document.getElementById('email');
   const password = document.getElementById('password');
+ 
+
+
  
   // Attach real-time validation to each field
   validateField(firstName, isNotEmpty);
   validateField(lastName, isNotEmpty);
   validateField(password, isPasswordValid);
+  validateField(email, isNotEmpty,);
+  checkEmailAvailability(email);
   checkUsernameAvailability(username);
+  
  
   // Form submission validation
   document.getElementById('registrationForm').addEventListener('submit', function (e) {
@@ -162,7 +218,7 @@ if (isset($_POST['register'])) {
     let isValid = true;
  
     // Validate all fields on submit
-    [firstName, lastName, username, password].forEach((field) => {
+    [firstName, lastName, username, password, email].forEach((field) => {
       if (!field.classList.contains('is-valid')) {
         field.classList.add('is-invalid');
         isValid = false;
